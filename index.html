@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Grief Companion">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f1a1c">
+<title>Grief Companion</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='38' fill='%230f1a1c'/%3E%3Ccircle cx='90' cy='90' r='52' fill='none' stroke='%23c9a84c' stroke-width='8'/%3E%3Cpath d='M90 42a48 48 0 0 0 0 96a36 36 0 0 1 0-96Z' fill='%23b07070' opacity='.85'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg:#0f1a1c;--surface:#162022;--surface-hover:#1c2a2d;--border:#243033;
+  --gold:#c9a84c;--gold-dim:#8a6e2f;--rose:#b07070;--rose-dim:#6b4444;--sage:#6a8f7a;
+  --text:#e8dfc8;--text-mid:#a09880;--text-dim:#5a5245;--white:#f5ede0;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin:0; min-height:100%; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+body { overscroll-behavior-y: none; }
+button, textarea { font: inherit; }
+button { touch-action: manipulation; }
+.header { border-bottom:1px solid var(--border); padding:calc(16px + env(safe-area-inset-top)) 20px 16px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; background:var(--bg); z-index:10; }
+.app-title { color:var(--gold); font-size:15px; font-family:Georgia,serif; letter-spacing:.5px; }
+.subtle { color:var(--text-dim); font-size:11px; }
+.container { max-width:600px; margin:0 auto; padding:24px 16px calc(70px + env(safe-area-inset-bottom)); }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:24px 22px; margin-bottom:20px; }
+.today-card { background:linear-gradient(135deg, var(--surface) 0%, #1a2830 100%); }
+.overline { color:var(--text-mid); font-size:12px; letter-spacing:2px; text-transform:uppercase; }
+.serif { font-family:Georgia,serif; }
+.stage-btn { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:8px; cursor:pointer; text-align:left; transition:all .15s; color:inherit; }
+.stage-btn:active, .soft-btn:active, .primary-btn:active { transform:scale(.99); }
+.progress { height:2px; background:var(--border); border-radius:1px; overflow:hidden; }
+.progress.big { height:3px; }
+.progress > div { height:100%; border-radius:1px; transition:width .4s ease; }
+.practice { background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:18px 20px; margin-bottom:10px; transition:all .2s; }
+.check { width:22px;height:22px;border-radius:50%;flex-shrink:0;margin-top:2px;background:transparent;border:2px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--bg);font-size:11px;font-weight:700; }
+.soft-btn { background:transparent; color:var(--text-mid); border:1px solid var(--border); border-radius:8px; padding:9px 18px; cursor:pointer; font-size:13px; }
+.primary-btn { background:var(--gold); color:var(--bg); border:0; border-radius:8px; padding:9px 22px; cursor:pointer; font-size:13px; font-weight:600; }
+.pill { border-radius:6px; padding:5px 12px; font-size:12px; display:inline-flex; align-items:center; gap:5px; }
+.modal { position:fixed; inset:0; background:rgba(0,0,0,.88); display:flex; align-items:center; justify-content:center; z-index:100; padding:16px; }
+.modal-panel { background:var(--surface); border:1px solid var(--border); border-radius:16px; width:100%; max-width:640px; max-height:90vh; display:flex; flex-direction:column; }
+textarea { width:100%; background:transparent; border:0; outline:0; color:var(--text); font-size:16px; line-height:1.85; resize:none; font-family:Georgia,serif; }
+.instruction-box { padding:16px 28px; background:var(--bg); margin:0 16px; border-radius:8px; font-size:13px; color:var(--text-mid); line-height:1.7; overflow:auto; max-height:120px; white-space:pre-line; }
+.mood-grid { display:flex; gap:8px; margin-bottom:24px; }
+.mood-btn { flex:1; padding:8px 4px; border-radius:8px; cursor:pointer; font-size:11px; background:transparent; color:var(--text-mid); border:1px solid var(--border); }
+.back { background:transparent;border:0;color:var(--text-mid);cursor:pointer;font-size:13px;padding:0 0 20px;display:flex;align-items:center;gap:6px; }
+@media (max-width:420px) { .header { padding-left:16px; padding-right:16px; } .card { padding:20px 18px; } .practice { padding:16px; } .mood-grid { gap:5px; } .mood-btn { font-size:10px; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ─── Palette & tokens ────────────────────────────────────────────────────────
+// Deep midnight teal bg, warm candlelight gold accent, dusty rose for grief
+// markers, cream text. Feels like a private journal lit by a single lamp.
+const C = {
+  bg: "#0f1a1c",
+  surface: "#162022",
+  surfaceHover: "#1c2a2d",
+  border: "#243033",
+  gold: "#c9a84c",
+  goldDim: "#8a6e2f",
+  rose: "#b07070",
+  roseDim: "#6b4444",
+  sage: "#6a8f7a",
+  text: "#e8dfc8",
+  textMid: "#a09880",
+  textDim: "#5a5245",
+  white: "#f5ede0",
+};
+
+// ─── Stage definitions ────────────────────────────────────────────────────────
+const STAGES = [
+  {
+    id: 1,
+    title: "Mapping the Grief",
+    subtitle: "See what you are carrying",
+    color: C.rose,
+    icon: "◉",
+    description:
+      "Four separate letters — one for each grief. Written without editing, without stopping. The act of putting the unsaid into words for the first time.",
+    practices: [
+      {
+        id: "p1a",
+        title: 'Letter: "What I lost when I lost him"',
+        type: "writing",
+        duration: null,
+        instruction:
+          "Write until your hand physically tires. No editing. No crossing out. If you freeze, write 'I don't know what to say' until something else comes. When done, seal it in an envelope. Do not reread.",
+      },
+      {
+        id: "p1b",
+        title: 'Letter: "What I lost when I lost the surgical dream"',
+        type: "writing",
+        duration: null,
+        instruction:
+          "Not just a career — an identity. Write everything that belongs to this specific grief. What you were going to become. Who that person would have been in the world.",
+      },
+      {
+        id: "p1c",
+        title: 'Letter: "Who I would have been"',
+        type: "writing",
+        duration: null,
+        instruction:
+          "The version of you that would have existed had these two things not been taken. The surgeon who was loved. That specific woman. She never got to exist. Write to her.",
+      },
+      {
+        id: "p1d",
+        title: 'Letter: "What the years took"',
+        type: "writing",
+        duration: null,
+        instruction:
+          "Write to your 20s. To the years of Rahu Mahadasha. What you expected. What you got instead. The anger is allowed here — it needs a container. End with one honest thing the years gave you.",
+      },
+    ],
+  },
+  {
+    id: 2,
+    title: "The Body First",
+    subtitle: "Release what the mind cannot reach",
+    color: C.sage,
+    icon: "◎",
+    description:
+      "Grief stored in the body cannot be reached by thinking or talking. These practices work directly with the physical locations where the grief lives.",
+    practices: [
+      {
+        id: "p2a",
+        title: "Daily Body Scan",
+        type: "body",
+        duration: 5,
+        instruction:
+          "Before getting up. Lying down, eyes closed. Starting from the top of the head, move slowly down through the body. Notice where there is tension, heaviness, numbness. Do not fix. Just name. 'There is heaviness in my chest.' 'My throat feels tight.' 5 minutes every morning.",
+      },
+      {
+        id: "p2b",
+        title: "The Grief Walk",
+        type: "body",
+        duration: 25,
+        instruction:
+          "Choose one of the four griefs before you start. Hold it — not analyze it, hold it — while walking. If tears come, walk and cry. If anger comes, walk faster. After the walk: write three sentences only. What you felt. Where you felt it. One thing you noticed.",
+        frequency: "Twice weekly",
+      },
+      {
+        id: "p2c",
+        title: "Shaking Practice (TRE)",
+        type: "body",
+        duration: 10,
+        instruction:
+          "Stand feet shoulder-width apart, slight bend in knees. Begin gently bouncing — just the knees bending and straightening. After 2-3 minutes the legs may begin to shake spontaneously. Allow it. Then lie down for 5 minutes and notice what you feel. Nothing may happen the first several times. That is fine.",
+        frequency: "Weekly",
+      },
+    ],
+  },
+  {
+    id: 3,
+    title: "Writing the Unsaid",
+    subtitle: "Say what was never said",
+    color: C.gold,
+    icon: "◈",
+    description:
+      "Specific letters to specific people and versions of yourself. Each written in one sitting. No editing afterward. No rereading for at least one week.",
+    practices: [
+      {
+        id: "p3a",
+        title: "Letter to the Person You Loved",
+        type: "writing",
+        duration: null,
+        instruction:
+          "Everything that was never said. The love — all of it. The anger — if it is there. The specific moments you cannot stop returning to. What you needed that you did not receive. What you still carry that belongs to him. What you are ready to carry alone now. No word limit.",
+      },
+      {
+        id: "p3b",
+        title: "Letter to the Surgeon You Would Have Become",
+        type: "writing",
+        duration: null,
+        instruction:
+          "Introduce yourself — who you are now — to who you would have been. Tell her what happened. Tell her what was lost. Ask for permission to go a different way. This will be the hardest letter. It may take multiple sittings. That is fine.",
+      },
+      {
+        id: "p3c",
+        title: "Letter to the Years",
+        type: "writing",
+        duration: null,
+        instruction:
+          "Write to your 20s. To the specific period that looked nothing like it was supposed to. What you expected from those years. The anger at wasted time. End by acknowledging one thing the years gave you that you could not have gotten any other way.",
+      },
+      {
+        id: "p3d",
+        title: "Letter from Your Future Self",
+        type: "writing",
+        duration: null,
+        instruction:
+          "Write AS yourself at 55. Not a fantasy — a real version. Someone who has been through everything and arrived at actual wisdom. What does she want you to know right now, at 35, exhausted after Harvard? If she cannot speak yet, write 'I don't know what she would say' until something comes.",
+      },
+    ],
+  },
+  {
+    id: 4,
+    title: "Grieving the Lost Self",
+    subtitle: "Acknowledge what was taken",
+    color: C.rose,
+    icon: "◇",
+    description:
+      "The self that would have existed needs to be properly mourned — not just the career, but the specific woman that career was going to create.",
+    practices: [
+      {
+        id: "p4a",
+        title: "Speak Her in Past Tense",
+        type: "ritual",
+        duration: null,
+        instruction:
+          "Read your 'Who I would have been' paper. Then describe that person in past tense: 'She was someone who would have...' The linguistic act of past tense is the act of completing the death of that self. Say it out loud, alone: 'You were real. What you wanted was real. What was taken from you was real. I carry you. And I am going a different way now. Not because you didn't matter. Because you did.'",
+      },
+      {
+        id: "p4b",
+        title: "One Act in Her Honor",
+        type: "ritual",
+        duration: null,
+        instruction:
+          "Choose one thing that the surgeon-self would have loved. A specific kind of music she would have listened to on night shifts. A medical text she would have read. A documentary she would have watched. Do that one thing fully, in honor of that specific self. Not as therapy. As acknowledgment.",
+      },
+    ],
+  },
+  {
+    id: 5,
+    title: "Ritual Containment",
+    subtitle: "Give the grief a home",
+    color: C.gold,
+    icon: "◑",
+    description:
+      "Uncontained grief bleeds into every moment. Ritual gives it a specific time and space — so it can be fully felt there, and the rest of life becomes possible.",
+    practices: [
+      {
+        id: "p5a",
+        title: "The Weekly Grief Ritual",
+        type: "ritual",
+        duration: 30,
+        instruction:
+          "Same day, same time, every week. A candle. Something that represents what was lost. A glass of water. Sit for 30 minutes. Allow whatever comes — tears, anger, numbness, memory, nothing. At the end: blow out the candle. Say aloud: 'I was here. I witnessed this. Until next week.' Then change rooms. Wash your hands. The container closes.",
+        frequency: "Weekly — same day, same time",
+      },
+    ],
+  },
+  {
+    id: 6,
+    title: "The Rahu-Moon Protocol",
+    subtitle: "Work with the returns, not against them",
+    color: C.sage,
+    icon: "◐",
+    description:
+      "The mind will return to the wound without permission. This cannot be stopped. But it can be worked with — three steps that prevent being swept away.",
+    practices: [
+      {
+        id: "p6a",
+        title: "The Three-Step Return Protocol",
+        type: "daily",
+        duration: 3,
+        instruction:
+          "When the grief returns involuntarily:\n\nStep 1 — NAME IT: 'Rahu has returned me to the grief of [specific loss] right now.'\n\nStep 2 — LOCATE IT: 'This feeling is in my chest / throat / stomach.'\n\nStep 3 — BREATHE INTO IT: Four slow breaths directly into that physical location. Not to make it go away. To keep it from contracting.\n\nThen: one small physical movement. Stand up. Open a window. Drink water. Return to now.",
+      },
+    ],
+  },
+  {
+    id: 7,
+    title: "Finding the Thread",
+    subtitle: "Only after months of the above",
+    color: C.gold,
+    icon: "✦",
+    description:
+      "Only begin this stage after 2-3 months of consistent practice with Stages 1-6. Meaning-making before adequate processing is spiritual bypassing.",
+    practices: [
+      {
+        id: "p7a",
+        title: "The One Question",
+        type: "writing",
+        duration: null,
+        instruction:
+          "Read all four grief papers from Stage 1 in one sitting. Then ask — and write your answer slowly, without rushing toward comfort:\n\n'What did I learn about myself from inside each of these griefs that I could not have learned any other way?'\n\nNot what the universe was trying to teach you. What YOU discovered about your own nature and depth from inside the actual experience of each loss.\n\nThese answers are the thread. Not the whole cloth. Just the thread.",
+      },
+    ],
+  },
+];
+
+
+
+const $ = (sel, root=document) => root.querySelector(sel);
+const esc = (s='') => String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const pad = n => String(n).padStart(2,'0');
+const load = (key, init) => { try { const s=localStorage.getItem(key); return s?JSON.parse(s):init; } catch { return init; } };
+const save = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
+let state = { completed: load('grief_completed', {}), journals: load('grief_journals', {}), checkins: load('grief_checkins', []), activeStage: null };
+const moodLabels = ['', 'Heavy', 'Low', 'Neutral', 'Lighter', 'Present'];
+const moodColors = ['', C.roseDim, C.rose, C.textMid, C.sage, C.gold];
+function todayString(d=new Date()) { return d.toDateString(); }
+function todayCheckin() { const t=todayString(); return state.checkins.find(c => todayString(new Date(c.date)) === t); }
+function totalDone() { return Object.values(state.completed).filter(Boolean).length; }
+function allPractices() { return STAGES.flatMap(s => s.practices); }
+function persist() { save('grief_completed', state.completed); save('grief_journals', state.journals); save('grief_checkins', state.checkins); }
+function render() {
+  const app = $('#app');
+  const checked = todayCheckin();
+  app.innerHTML = `<div class="header"><div><div class="app-title">Grief Companion</div><div class="subtle">${totalDone()} of ${allPractices().length} practices visited</div></div><button id="checkinBtn" class="soft-btn" style="background:${checked ? C.gold+'15':'transparent'};border-color:${checked ? C.goldDim:C.border};color:${checked ? C.gold:C.textMid}">${checked ? '✦ Checked in':'Check in today'}</button></div><main class="container" id="main"></main>`;
+  $('#checkinBtn').onclick = () => openCheckin();
+  const main = $('#main');
+  if (state.activeStage) renderStage(main, STAGES.find(s => s.id === state.activeStage)); else renderOverview(main);
+}
+function renderOverview(root) {
+  const tc = todayCheckin();
+  const recent = state.checkins.slice(-7);
+  let html = `<div class="card today-card"><div class="overline">${new Date().toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long'})}</div><p class="serif" style="color:${C.white};font-size:18px;margin:0 0 6px;font-weight:400">You are almost through.</p><p style="color:${C.textMid};font-size:13px;margin:0">Rahu Mahadasha ends May 2027. Until then — one practice at a time.</p>`;
+  if (tc) html += `<div style="margin-top:14px;display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:${moodColors[tc.mood]}">●</span><span style="color:${C.textMid};font-size:13px">Today: ${moodLabels[tc.mood]}</span>${tc.note ? `<span style="color:${C.textDim};font-size:12px">— ${esc(tc.note.slice(0,40))}${tc.note.length>40?'…':''}</span>`:''}</div>`;
+  html += `</div>`;
+  if (recent.length) {
+    html += `<div class="card" style="border-radius:12px;padding:16px 20px"><div class="overline" style="margin-bottom:14px">Recent days</div><div style="display:flex;gap:6px;align-items:flex-end">${recent.map(c => `<div style="flex:1;text-align:center"><div style="height:${c.mood*10+20}px;background:${moodColors[c.mood]};border-radius:4px;margin-bottom:6px;opacity:.7"></div><div style="font-size:10px;color:${C.textDim}">${new Date(c.date).toLocaleDateString('en-IN', {day:'numeric'})}</div></div>`).join('')}</div></div>`;
+  }
+  html += `<div class="overline" style="margin-bottom:12px">The Seven Stages</div>`;
+  STAGES.forEach((stage, idx) => {
+    const total=stage.practices.length, done=stage.practices.filter(p=>state.completed[p.id]).length, pct=total?(done/total)*100:0, locked=idx>0 && idx>=6 && state.checkins.length<60;
+    html += `<button class="stage-btn" data-stage="${stage.id}" ${locked?'disabled':''} style="background:${state.activeStage===stage.id ? stage.color+'12':C.surface};border-color:${state.activeStage===stage.id ? stage.color+'50':C.border};opacity:${locked?.45:1};cursor:${locked?'default':'pointer'}"><div style="display:flex;align-items:center;gap:12px"><span style="font-size:20px;color:${stage.color};width:28px;text-align:center">${stage.icon}</span><div style="flex:1"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><span style="color:${C.white};font-size:14px;font-weight:500">${stage.title}</span><span style="color:${C.textMid};font-size:12px">${done}/${total}</span></div><div style="color:${C.textMid};font-size:12px;margin-bottom:8px">${stage.subtitle}</div><div class="progress"><div style="width:${pct}%;background:${stage.color}"></div></div></div>${locked ? `<span style="color:${C.textDim};font-size:12px">Stage 7 after 2+ months</span>`:''}</div></button>`;
+  });
+  html += `<div class="card" style="margin-top:24px;border-radius:12px;padding:16px 18px"><div class="overline" style="margin-bottom:8px">A reminder</div><p style="color:${C.textMid};font-size:13px;line-height:1.8;margin:0">The grief does not need to end. It needs a home. That is what this is — a home for it. One practice at a time. No timeline. No deadline. Just showing up.</p></div>`;
+  root.innerHTML = html;
+  root.querySelectorAll('[data-stage]').forEach(b => b.onclick = () => { state.activeStage = Number(b.dataset.stage); render(); });
+}
+function renderStage(root, stage) {
+  const total=stage.practices.length, done=stage.practices.filter(p=>state.completed[p.id]).length, pct=total?(done/total)*100:0;
+  root.innerHTML = `<button class="back" id="back">← Back to stages</button><div style="margin-bottom:28px"><div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span style="font-size:28px;color:${stage.color}">${stage.icon}</span><div><div class="overline">Stage ${stage.id}</div><h2 class="serif" style="color:${C.white};margin:0;font-size:22px;font-weight:400">${stage.title}</h2></div></div><p style="color:${C.textMid};font-size:14px;line-height:1.8;margin:0 0 16px">${stage.description}</p><div style="display:flex;align-items:center;gap:10px"><div class="progress big" style="flex:1"><div style="width:${pct}%;background:${stage.color}"></div></div><span style="color:${C.textMid};font-size:12px">${done}/${total}</span></div></div><div id="practices"></div>`;
+  $('#back').onclick = () => { state.activeStage=null; render(); };
+  const box = $('#practices');
+  box.innerHTML = stage.practices.map(p => practiceHtml(p, stage.color)).join('');
+  box.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => { const id=b.dataset.toggle; state.completed[id]=!state.completed[id]; persist(); render(); });
+  box.querySelectorAll('[data-journal]').forEach(b => b.onclick = () => openJournal(stage.practices.find(p => p.id===b.dataset.journal), stage.color));
+  box.querySelectorAll('[data-timer]').forEach(b => b.onclick = () => openTimer(Number(b.dataset.timer)));
+}
+function practiceHtml(p, color) {
+  const completed=!!state.completed[p.id], has=!!state.journals[p.id], isWriting=p.type==='writing';
+  return `<div class="practice" style="background:${completed ? color+'0a':C.bg};border-color:${completed ? color+'40':C.border}"><div style="display:flex;gap:14px;align-items:flex-start"><button class="check" data-toggle="${p.id}" style="background:${completed ? color:'transparent'};border-color:${completed ? color:C.border}">${completed?'✓':''}</button><div style="flex:1"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px"><span style="color:${C.white};font-size:14px;font-weight:500">${esc(p.title)}</span>${p.frequency ? `<span style="font-size:11px;color:${color};background:${color}15;padding:2px 8px;border-radius:20px">${esc(p.frequency)}</span>`:''}${p.duration ? `<span style="font-size:11px;color:${C.textMid}">${p.duration} min</span>`:''}</div><p style="color:${C.textMid};font-size:13px;line-height:1.7;margin:0 0 12px;white-space:pre-line">${esc(p.instruction)}</p><div style="display:flex;gap:8px;flex-wrap:wrap">${p.duration ? `<button class="soft-btn pill" data-timer="${p.duration}">◷ Start timer</button>`:''}<button class="soft-btn pill" data-journal="${p.id}" style="background:${has ? color+'15':'transparent'};border-color:${has ? color+'50':C.border};color:${has ? color:C.textMid}">${has ? '✦ Entry saved' : (isWriting ? '✎ Write here':'✎ Add note')}</button></div></div></div></div>`;
+}
+function openModal(html) { const wrap=document.createElement('div'); wrap.className='modal'; wrap.innerHTML=html; document.body.appendChild(wrap); return wrap; }
+function closeModal(el) { el.remove(); }
+function openJournal(p, color) {
+  const m = openModal(`<div class="modal-panel"><div style="padding:24px 28px 16px;border-bottom:1px solid ${C.border}"><div class="overline" style="margin-bottom:6px">Private Journal</div><div class="serif" style="color:${C.white};font-size:17px">${esc(p.title)}</div></div><div class="instruction-box">${esc(p.instruction)}</div><textarea id="journalText" placeholder="Write here. No editing. No stopping. What needs to be said..." style="flex:1;padding:20px 28px;min-height:220px">${esc(state.journals[p.id]||'')}</textarea><div style="padding:16px 28px;border-top:1px solid ${C.border};display:flex;gap:12px;justify-content:flex-end"><button class="soft-btn" id="cancel">Cancel</button><button class="primary-btn" id="saveJ">Save Entry</button></div></div>`);
+  $('#cancel', m).onclick = () => closeModal(m);
+  $('#saveJ', m).onclick = () => { state.journals[p.id] = $('#journalText', m).value; state.completed[p.id]=true; persist(); closeModal(m); render(); };
+  setTimeout(()=>$('#journalText',m).focus(), 150);
+}
+function openCheckin() {
+  const existing = todayCheckin() || {mood:3,note:''}; let selected = existing.mood;
+  const buttons = moodLabels.slice(1).map((x,i)=>`<button class="mood-btn" data-mood="${i+1}">${x}</button>`).join('');
+  const m = openModal(`<div class="modal-panel" style="max-width:400px;padding:32px 28px;display:block"><div class="overline" style="margin-bottom:6px">Today's Check-in</div><p class="serif" style="color:${C.white};font-size:16px;margin:0 0 24px">How are you carrying it today?</p><div class="mood-grid">${buttons}</div><textarea id="checkNote" placeholder="One true thing about today (optional)..." style="background:${C.bg};border:1px solid ${C.border};border-radius:8px;padding:12px 14px;min-height:90px;margin-bottom:20px">${esc(existing.note||'')}</textarea><div style="display:flex;gap:10px;justify-content:flex-end"><button class="soft-btn" id="later">Later</button><button class="primary-btn" id="saveC">Save</button></div></div>`);
+  function paint() { m.querySelectorAll('[data-mood]').forEach(b => { const on=Number(b.dataset.mood)===selected; b.style.background=on?C.gold:'transparent'; b.style.color=on?C.bg:C.textMid; b.style.borderColor=on?C.gold:C.border; b.style.fontWeight=on?'600':'400'; }); }
+  m.querySelectorAll('[data-mood]').forEach(b => b.onclick = () => { selected=Number(b.dataset.mood); paint(); }); paint();
+  $('#later',m).onclick=()=>closeModal(m);
+  $('#saveC',m).onclick=()=>{ const note=$('#checkNote',m).value; state.checkins=state.checkins.filter(c=>todayString(new Date(c.date))!==todayString()); state.checkins.push({mood:selected,note,date:new Date().toISOString()}); persist(); closeModal(m); render(); };
+}
+function openTimer(minutes) {
+  let total=minutes*60, left=total, running=false, done=false, interval=null;
+  const m = openModal(`<div class="modal-panel" style="max-width:340px;padding:40px 48px;text-align:center;display:block"><div id="timerLabel" class="overline" style="margin-bottom:8px">Timer</div><div id="clock" class="serif" style="font-size:64px;font-weight:200;color:${C.white};letter-spacing:-2px;margin-bottom:24px"></div><div id="barBox" style="height:4px;background:${C.border};border-radius:2px;margin-bottom:28px;overflow:hidden"><div id="bar" style="height:100%;width:0%;background:${C.gold};border-radius:2px;transition:width 1s linear"></div></div><p id="doneText" style="display:none;color:${C.textMid};font-size:14px;line-height:1.7;margin:0 0 24px">Take a breath.<br>You showed up.</p><div style="display:flex;gap:12px;justify-content:center"><button class="primary-btn" id="run">Begin</button><button class="soft-btn" id="cancelT">Cancel</button></div></div>`);
+  function tick() { if (running && left>0) { left--; update(); } if (left===0 && !done) { running=false; done=true; clearInterval(interval); update(); } }
+  function update() { const mm=Math.floor(left/60), ss=left%60; $('#clock',m).textContent=done?'✦':`${pad(mm)}:${pad(ss)}`; $('#clock',m).style.color=done?C.gold:C.white; $('#bar',m).style.width=`${((total-left)/total)*100}%`; $('#timerLabel',m).textContent=done?'Complete':'Timer'; $('#run',m).style.display=done?'none':''; $('#cancelT',m).textContent=done?'Close':'Cancel'; $('#doneText',m).style.display=done?'block':'none'; $('#barBox',m).style.display=done?'none':'block'; $('#run',m).textContent=running?'Pause':(left===total?'Begin':'Resume'); }
+  $('#run',m).onclick=()=>{ running=!running; if (running) { clearInterval(interval); interval=setInterval(tick,1000); } else clearInterval(interval); update(); };
+  $('#cancelT',m).onclick=()=>{ clearInterval(interval); closeModal(m); }; update();
+}
+render();
+</script>
+</body>
+</html>
